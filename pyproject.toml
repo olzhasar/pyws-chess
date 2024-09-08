@@ -1,0 +1,52 @@
+[project]
+name = "chess-server"
+version = "0.1.0"
+description = "Chess server"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "chess>=1.10.0",
+    "fastapi>=0.115.0",
+    "jinja2>=3.1.4",
+    "msgspec>=0.18.6",
+    "python-chess>=1.2.0",
+    "uvicorn>=0.30.6",
+    "websockets>=13.0.1",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.2",
+    "pytest-asyncio>=0.24.0",
+    "pytest-mock>=3.14.0",
+    "pytest-watcher>=0.4.3",
+    "ruff",
+    "mypy>=1.11.2",
+    "httpx>=0.27.2",
+]
+
+[tool.ruff]
+line-length = 89
+target-version = "py311"
+extend-select = ["I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = [".", "src"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+show_error_codes = true
+exclude = ["migrations", ".venv"]
+
+[[tool.mypy.overrides]]
+module = [
+  "tests.*",
+  "app.main",
+]
+disallow_incomplete_defs = false
+disallow_untyped_defs = false
+disallow_any_generics = false

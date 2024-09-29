@@ -51,6 +51,7 @@ class Game:
     async def start(self) -> None:
         await self._start_barrier.wait()
         self.start_time.set_result(datetime.now())
+        logger.info("Game %s started", self.game_id)
 
     async def wait_for_move(self, player_id: str) -> str:
         if self._current_turn == player_id:

@@ -1,8 +1,10 @@
 import asyncio
+import json
 import logging
 import pathlib
 from typing import Any
 
+import msgspec
 from fastapi import (
     APIRouter,
     FastAPI,
@@ -42,6 +44,7 @@ async def websocket_endpoint(
 ):
     await websocket.accept()
 
+    # TODO: store sessions globally and recreate client on reconnect
     player_id = str(id(websocket))
 
     try:
@@ -55,28 +58,52 @@ async def websocket_endpoint(
 
     my_turn = client.am_i_white()
 
+    start_msg = messages.GameStartResponse(start_time=client.game.start_time.result())
+    logger.info("Sending start message: %s", start_msg)
+    await websocket.send_bytes(start_msg.serialize())
+
+    # TODO: handle disconnects
+
+    my_turn = client.am_i_white()
+
     while True:
         if my_turn:
-            msg = await websocket.receive_json()
+            logger.info("Player %s is waiting for move", player_id)
+
             try:
-                move = messages.MoveRequest(**msg)
-            except Exception:
-                logger.error(f"Invalid message: {msg}")
+                msg = await websocket.receive_json()
+            except Exception as exc:
+                logger.error(f"Error receiving message: {exc}")
+                break
+
+            logger.info("Player %s received message: %s", player_id, msg)
+            binary = json.dumps(msg).encode()
+            try:
+                move = msgspec.json.decode(binary, type=messages.MoveRequest)
+            except Exception as exc:
+                logger.error(f"Error parsing message: {msg}\n{exc}")
                 continue
 
             try:
                 await client.make_move(move.uci)
             except GameOver:
-                await websocket.send_json(messages.GameOverResponse())
+                await websocket.send_bytes(messages.GameOverResponse().serialize())
                 break
+            except ValueError as exc:
+                logger.error(f"Error making move: {exc}")
+                continue
         else:
+            logger.info("Player %s is waiting for opponent move", player_id)
+
             try:
                 uci = await client.wait_for_move()
             except GameOver:
-                await websocket.send_json(messages.GameOverResponse())
+                await websocket.send_bytes(messages.GameOverResponse().serialize())
                 break
+            else:
+                logger.info("Player %s received opponent move: %s", player_id, uci)
             finally:
-                await websocket.send_json(messages.MoveRequest(uci=uci))
+                await websocket.send_bytes(messages.MoveRequest(uci=uci).serialize())
 
     await websocket.close(status.WS_1000_NORMAL_CLOSURE)
 

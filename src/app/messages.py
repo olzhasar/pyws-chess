@@ -4,7 +4,8 @@ import msgspec
 
 
 class BaseMessage(msgspec.Struct, tag=True):
-    pass
+    def serialize(self) -> bytes:
+        return msgspec.json.encode(self)
 
 
 class InitResponse(BaseMessage):
@@ -16,8 +17,6 @@ class JoinRequest(BaseMessage):
 
 
 class GameStartResponse(BaseMessage):
-    game_id: str
-    opponent_id: str
     start_time: datetime
 
 

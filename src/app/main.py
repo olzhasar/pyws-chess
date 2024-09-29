@@ -11,6 +11,7 @@ from fastapi import (
     WebSocketException,
     status,
 )
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app import messages
@@ -18,6 +19,7 @@ from game import GameManager, GameOver
 
 APP_DIR = pathlib.Path(__file__).parent
 TEMPLATES_DIR = APP_DIR.parent / "templates"
+STATIC_DIR = APP_DIR.parent.parent / "static"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -91,5 +93,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/img", StaticFiles(directory=STATIC_DIR / "img"))
 
     return app

@@ -58,13 +58,13 @@ async def websocket_endpoint(
 
     my_turn = client.am_i_white()
 
-    start_msg = messages.GameStartResponse(start_time=client.game.start_time.result())
+    start_msg = messages.GameStartResponse(
+        start_time=client.game.start_time.result(), am_i_white=my_turn
+    )
     logger.info("Sending start message: %s", start_msg)
     await websocket.send_bytes(start_msg.serialize())
 
     # TODO: handle disconnects
-
-    my_turn = client.am_i_white()
 
     while True:
         if my_turn:

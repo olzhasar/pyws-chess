@@ -18,6 +18,7 @@ class JoinRequest(BaseMessage):
 
 class GameStartResponse(BaseMessage):
     start_time: datetime
+    am_i_white: bool
 
 
 class MoveRequest(BaseMessage):

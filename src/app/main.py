@@ -73,7 +73,7 @@ async def websocket_endpoint(
             try:
                 msg = await websocket.receive_json()
             except Exception as exc:
-                logger.error(f"Error receiving message: {exc}")
+                logger.error("Player %s error receiving message: %s", player_id, exc)
                 break
 
             logger.info("Player %s received message: %s", player_id, msg)
@@ -92,6 +92,8 @@ async def websocket_endpoint(
             except ValueError as exc:
                 logger.error(f"Error making move: {exc}")
                 continue
+            else:
+                logger.info("Player %s made move: %s", player_id, move.uci)
         else:
             logger.info("Player %s is waiting for opponent move", player_id)
 
@@ -100,10 +102,14 @@ async def websocket_endpoint(
             except GameOver:
                 await websocket.send_bytes(messages.GameOverResponse().serialize())
                 break
+            except Exception as exc:
+                logger.error("Player %s error waiting for move: %s", player_id, exc)
+                break
             else:
                 logger.info("Player %s received opponent move: %s", player_id, uci)
-            finally:
                 await websocket.send_bytes(messages.MoveRequest(uci=uci).serialize())
+
+        my_turn = not my_turn
 
     await websocket.close(status.WS_1000_NORMAL_CLOSURE)
 

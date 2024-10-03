@@ -54,18 +54,14 @@ class Game:
         logger.info("Game %s started", self.game_id)
 
     async def wait_for_move(self, player_id: str) -> str:
-        if self._current_turn == player_id:
-            raise ValueError("Cannot wait for move on your turn")
-
         self._check_game_over()
 
         move = await self._current_move
         async with self._move_lock:
             self._current_move = self.loop.create_future()
-            await self._switch_turn()
         return move
 
-    async def _switch_turn(self) -> None:
+    def _switch_turn(self) -> None:
         if self._current_turn == self.player_1:
             self._current_turn = self.player_2
         else:
@@ -82,6 +78,7 @@ class Game:
             self._push_move(move)
 
             self._current_move.set_result(move)
+            self._switch_turn()
 
             self._check_game_over()
 

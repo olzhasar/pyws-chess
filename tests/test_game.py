@@ -5,6 +5,8 @@ import pytest_asyncio
 
 from game import Game, GameClient, GameManager, GameOver
 
+pytestmark = pytest.mark.asyncio(loop_scope="module")
+
 
 @pytest.fixture
 def player_1():
@@ -55,6 +57,22 @@ async def test_illegal_moves(
         await client_1.make_move(move)
 
 
+async def test_waiting(game: Game, client_1: GameClient, client_2: GameClient):
+    await client_1.make_move("e2e4")
+
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(client_1.wait_for_move(), timeout=0.2)
+
+    assert await client_2.wait_for_move() == "e2e4"
+
+    await client_2.make_move("e7e5")
+
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(client_2.wait_for_move(), timeout=0.2)
+
+    assert await client_1.wait_for_move() == "e7e5"
+
+
 async def test_checkmate(game: Game, client_1: GameClient, client_2: GameClient):
     await client_1.make_move("f2f3")
     await client_2.wait_for_move()
@@ -72,7 +90,7 @@ async def test_checkmate(game: Game, client_1: GameClient, client_2: GameClient)
         await client_1.wait_for_move()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="module")
 async def game_manager():
     instance = GameManager()
     async with instance:

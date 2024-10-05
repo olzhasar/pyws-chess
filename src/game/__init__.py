@@ -27,6 +27,7 @@ class Game:
         self.player_2 = player_2
         self._move_lock = asyncio.Lock()
         self._current_turn = player_1
+        self._wait_condition = asyncio.Condition()
         self._current_move: asyncio.Future[str] = self.loop.create_future()
         self._board = Board()
         self.start_time: asyncio.Future[datetime] = self.loop.create_future()
@@ -54,12 +55,17 @@ class Game:
         logger.info("Game %s started", self.game_id)
 
     async def wait_for_move(self, player_id: str) -> str:
-        self._check_game_over()
+        async with self._wait_condition:
+            await self._wait_condition.wait_for(lambda: self._current_turn != player_id)
 
-        move = await self._current_move
-        async with self._move_lock:
-            self._current_move = self.loop.create_future()
-        return move
+            self._check_game_over()
+
+            move = await self._current_move
+            async with self._move_lock:
+                self._current_move = self.loop.create_future()
+                self._switch_turn()
+                self._wait_condition.notify()
+            return move
 
     def _switch_turn(self) -> None:
         if self._current_turn == self.player_1:
@@ -78,7 +84,6 @@ class Game:
             self._push_move(move)
 
             self._current_move.set_result(move)
-            self._switch_turn()
 
             self._check_game_over()
 

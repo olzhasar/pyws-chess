@@ -18,6 +18,7 @@ class JoinRequest(BaseMessage):
 
 class GameStartResponse(BaseMessage):
     start_time: datetime
+    my_id: str
     am_i_white: bool
 
 
@@ -26,7 +27,7 @@ class MoveRequest(BaseMessage):
 
 
 class MoveResponse(BaseMessage):
-    player_id: str
+    for_id: str
     uci: str
 
 

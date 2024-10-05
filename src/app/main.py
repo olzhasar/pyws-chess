@@ -59,7 +59,9 @@ async def websocket_endpoint(
     my_turn = client.am_i_white()
 
     start_msg = messages.GameStartResponse(
-        start_time=client.game.start_time.result(), am_i_white=my_turn
+        start_time=client.game.start_time.result(),
+        my_id=player_id,
+        am_i_white=my_turn,
     )
     logger.info("Sending start message: %s", start_msg)
     await websocket.send_bytes(start_msg.serialize())
@@ -104,10 +106,13 @@ async def websocket_endpoint(
                 break
             except Exception as exc:
                 logger.error("Player %s error waiting for move: %s", player_id, exc)
-                break
+                await asyncio.sleep(1)
+                continue
             else:
                 logger.info("Player %s received opponent move: %s", player_id, uci)
-                await websocket.send_bytes(messages.MoveRequest(uci=uci).serialize())
+                await websocket.send_bytes(
+                    messages.MoveResponse(uci=uci, for_id=player_id).serialize()
+                )
 
         my_turn = not my_turn
 

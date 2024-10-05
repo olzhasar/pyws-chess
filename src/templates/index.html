@@ -22,7 +22,8 @@
       dropOffBoard: 'snapback', // this is the default
       orientation: 'white',
       position: 'start',
-      onDrop: onDrop
+      onDrop: onDrop,
+      onDragStart: onDragStart
     }
 
     let startTime;
@@ -30,6 +31,8 @@
     const gameStatus = window.document.getElementById("gameStatus");
     const game = new Chess();
     let amIWhite = false;
+    let myTurn = true;
+    let myId;
 
     const ws = new WebSocket("ws://" + window.location.host + "/ws");
 
@@ -39,20 +42,38 @@
 
     ws.onmessage = async function(event) {
       const data = JSON.parse(await event.data.text());
+      console.log(`Received message: ${JSON.stringify(data)}`);
+
       if (data.type === "GameStartResponse") {
 	startTime = new Date(data.start_time);
 	gameStatus.innerHTML = startTime.toLocaleString();
+	myId = data.my_id;
 	amIWhite = data.am_i_white;
 
 	if (!amIWhite) {
 	  config.orientation = 'black';
+	  myTurn = false;
 	}
 
 	board = Chessboard('myBoard', config);
 
-      } else {
-	gameStatus.innerHTML = data;
-	console.log(data);
+      } else if (data.type === "MoveResponse") {
+	const source = data.uci.slice(0, 2);
+	const target = data.uci.slice(2, 4);
+
+	const move = game.move(
+	  {
+	    from: source,
+	    to: target,
+	    promotion: 'q'
+	  }
+	);
+	if (move === null) {
+	  console.log("Invalid opponent move");
+	  return;
+	}
+	board.move(`${source}-${target}`);
+	myTurn = true;
       }
     };
 
@@ -63,21 +84,38 @@
       }
 
       ws.send(JSON.stringify(payload));
+      myTurn = false;
+
       console.log(`Sent move: ${payload}`);
     }
 
+    function onDragStart (source, piece, position, orientation) {
+      if (!myTurn) return false
+
+      if ((orientation === 'white' && piece.search(/^w/) === -1) ||
+	(orientation === 'black' && piece.search(/^b/) === -1)) {
+	return false
+      }
+    }
+
     function onDrop (source, target) {
-      // check if the move is legal
-      var move = game.move({
+      if (!myTurn) return 'snapback'
+
+      if (source === target) return 'snapback'
+
+      const move = game.move({
 	from: source,
 	to: target,
 	promotion: 'q'
       })
-
-      // illegal move
-      if (move === null) return 'snapback'
+      if (move === null) {
+	console.log("Invalid move");
+	return 'snapback'
+      }
 
       const uci = `${source}${target}`
+
+      console.log(`Detected move: ${uci}`);
 
       sendMove(uci)
     }

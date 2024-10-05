@@ -83,11 +83,11 @@ async def test_checkmate(game: Game, client_1: GameClient, client_2: GameClient)
     await client_1.make_move("g2g4")
     await client_2.wait_for_move()
 
-    with pytest.raises(GameOver):
-        await client_2.make_move("d8h4")
+    await client_2.make_move("d8h4")
+    await client_1.wait_for_move()
 
     with pytest.raises(GameOver):
-        await client_1.wait_for_move()
+        await client_1.make_move("g4h5")
 
 
 @pytest_asyncio.fixture(loop_scope="module")

@@ -58,8 +58,6 @@ class Game:
         async with self._wait_condition:
             await self._wait_condition.wait_for(lambda: self._current_turn != player_id)
 
-            self._check_game_over()
-
             move = await self._current_move
             async with self._move_lock:
                 self._current_move = self.loop.create_future()
@@ -77,6 +75,8 @@ class Game:
         if self._current_move.done():
             raise ValueError("Previous move not yet consumed")
 
+        self._check_game_over()
+
         async with self._move_lock:
             if not self._is_current_turn(player_id):
                 raise ValueError("Not your turn")
@@ -84,8 +84,6 @@ class Game:
             self._push_move(move)
 
             self._current_move.set_result(move)
-
-            self._check_game_over()
 
     def _is_current_turn(self, player_id: str) -> bool:
         return self._current_turn == player_id

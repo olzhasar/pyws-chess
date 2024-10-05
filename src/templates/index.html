@@ -14,8 +14,8 @@
     </div>
     <script src="/static/js/jquery-3.5.1.min.js"></script>
 
-    <script src="/static/js/chess.js"></script>
     <script src="/static/js/chessboard-1.0.0.min.js"></script>
+    <script src="/static/js/chess.js"></script>
     <script>
     let config = {
       draggable: true,
@@ -42,22 +42,32 @@
 
     ws.onmessage = async function(event) {
       const data = JSON.parse(await event.data.text());
-      console.log(`Received message: ${JSON.stringify(data)}`);
+      console.debug(`Received message: ${JSON.stringify(data)}`);
 
       if (data.type === "GameStartResponse") {
-	startTime = new Date(data.start_time);
-	gameStatus.innerHTML = startTime.toLocaleString();
-	myId = data.my_id;
-	amIWhite = data.am_i_white;
-
-	if (!amIWhite) {
-	  config.orientation = 'black';
-	  myTurn = false;
-	}
-
-	board = Chessboard('myBoard', config);
-
+	handleGameStart(data);
       } else if (data.type === "MoveResponse") {
+	handleIncomingMove(data);
+      } else {
+	console.error(`Unknown message type: ${data.type}`);
+      }
+    };
+
+    function handleGameStart(data) {
+      startTime = new Date(data.start_time);
+      console.debug(`Game started at: ${startTime.toLocaleString()}`);
+      myId = data.my_id;
+      amIWhite = data.am_i_white;
+
+      if (!amIWhite) {
+	config.orientation = 'black';
+	myTurn = false;
+      }
+
+      board = Chessboard('myBoard', config);
+    }
+
+    function handleIncomingMove(data) {
 	const source = data.uci.slice(0, 2);
 	const target = data.uci.slice(2, 4);
 
@@ -69,12 +79,13 @@
 	  }
 	);
 	if (move === null) {
-	  console.log("Invalid opponent move");
+	  console.error("Invalid opponent move");
 	  return;
 	}
 	board.move(`${source}-${target}`);
+	checkGameOver();
+
 	myTurn = true;
-      }
     };
 
     function sendMove(uci) {
@@ -83,19 +94,42 @@
 	uci: uci
       }
 
-      ws.send(JSON.stringify(payload));
+      msg = JSON.stringify(payload);
+      ws.send(msg);
       myTurn = false;
 
-      console.log(`Sent move: ${payload}`);
+      console.debug(`Sent message: ${msg}`);
     }
 
     function onDragStart (source, piece, position, orientation) {
       if (!myTurn) return false
+      if (game.game_over()) return false
 
       if ((orientation === 'white' && piece.search(/^w/) === -1) ||
 	(orientation === 'black' && piece.search(/^b/) === -1)) {
 	return false
       }
+    }
+
+    function checkGameOver() {
+      if (!game.game_over()) {
+	return;
+      }
+
+      let result;
+
+      if (game.in_checkmate()) {
+	if (myTurn) {
+	  result = "You won by checkmate!";
+	} else {
+	  result = "Opponent wins by checkmate!";
+	}
+
+      } else if (game.in_draw()) {
+	result = "Game ended in a draw!";
+      }
+
+      gameStatus.innerHTML = result;
     }
 
     function onDrop (source, target) {
@@ -109,13 +143,15 @@
 	promotion: 'q'
       })
       if (move === null) {
-	console.log("Invalid move");
+	console.debug("Invalid move");
 	return 'snapback'
       }
 
+      checkGameOver();
+
       const uci = `${source}${target}`
 
-      console.log(`Detected move: ${uci}`);
+      console.debug(`Detected move: ${uci}`);
 
       sendMove(uci)
     }

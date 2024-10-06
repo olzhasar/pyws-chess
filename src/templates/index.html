@@ -32,6 +32,7 @@
     const game = new Chess();
     let amIWhite = false;
     let myTurn = true;
+    let gameOver = false;
     let myId;
 
     const ws = new WebSocket("ws://" + window.location.host + "/ws");
@@ -48,6 +49,8 @@
 	handleGameStart(data);
       } else if (data.type === "MoveResponse") {
 	handleIncomingMove(data);
+      } else if (data.type === "GameOverResponse") {
+	handleGameOver(data);
       } else {
 	console.error(`Unknown message type: ${data.type}`);
       }
@@ -88,6 +91,11 @@
 	myTurn = true;
     };
 
+    function handleGameOver(data) {
+      gameOver = true;
+      gameStatus.innerHTML = "You won by abandonment!";
+    }
+
     function sendMove(uci) {
       const payload = {
 	type: "MoveRequest",
@@ -102,7 +110,7 @@
     }
 
     function onDragStart (source, piece, position, orientation) {
-      if (!myTurn) return false
+      if (!myTurn || gameOver) return false
       if (game.game_over()) return false
 
       if ((orientation === 'white' && piece.search(/^w/) === -1) ||

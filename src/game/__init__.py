@@ -58,7 +58,7 @@ class Game:
         async with self._wait_condition:
             await self._wait_condition.wait_for(lambda: self._current_turn != player_id)
 
-            move = await self._current_move
+            move = await asyncio.shield(self._current_move)
             async with self._move_lock:
                 self._current_move = self.loop.create_future()
                 self._switch_turn()

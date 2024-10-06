@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import pathlib
+from contextlib import asynccontextmanager
 from typing import Any
 
 import msgspec
@@ -10,6 +11,7 @@ from fastapi import (
     FastAPI,
     Request,
     WebSocket,
+    WebSocketDisconnect,
     WebSocketException,
     status,
 )
@@ -23,7 +25,6 @@ APP_DIR = pathlib.Path(__file__).parent
 TEMPLATES_DIR = APP_DIR.parent / "templates"
 STATIC_DIR = APP_DIR.parent.parent / "static"
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -66,16 +67,14 @@ async def websocket_endpoint(
     logger.info("Sending start message: %s", start_msg)
     await websocket.send_bytes(start_msg.serialize())
 
-    # TODO: handle disconnects
-
     while True:
         if my_turn:
-            logger.info("Player %s is waiting for move", player_id)
-
             try:
+                logger.debug("Player %s waiting for move", player_id)
                 msg = await websocket.receive_json()
-            except Exception as exc:
-                logger.error("Player %s error receiving message: %s", player_id, exc)
+            except WebSocketDisconnect:
+                logger.info("Player %s disconnected", player_id)
+                # TODO: notify opponent
                 break
 
             logger.info("Player %s received message: %s", player_id, msg)
@@ -83,16 +82,17 @@ async def websocket_endpoint(
             try:
                 move = msgspec.json.decode(binary, type=messages.MoveRequest)
             except Exception as exc:
-                logger.error(f"Error parsing message: {msg}\n{exc}")
-                continue
+                logger.error("Invalid message received: %s\n%s", msg, exc)
+                break
 
             try:
                 await client.make_move(move.uci)
             except GameOver:
+                logger.error("Received move after game over")
                 await websocket.send_bytes(messages.GameOverResponse().serialize())
                 break
             except ValueError as exc:
-                logger.error(f"Error making move: {exc}")
+                logger.error("Error making move: %s", exc)
                 continue
             else:
                 logger.info("Player %s made move: %s", player_id, move.uci)
@@ -100,13 +100,11 @@ async def websocket_endpoint(
             logger.info("Player %s is waiting for opponent move", player_id)
 
             try:
+                logger.debug("Player %s waiting for opponent move", player_id)
+                # TODO: graceful shutdown
                 uci = await client.wait_for_move()
-            except GameOver:
-                await websocket.send_bytes(messages.GameOverResponse().serialize())
-                break
             except Exception as exc:
-                logger.error("Player %s error waiting for move: %s", player_id, exc)
-                await asyncio.sleep(1)
+                logger.error("Unexpected error while waiting for move: %s", exc)
                 continue
             else:
                 logger.info("Player %s received opponent move: %s", player_id, uci)
@@ -116,19 +114,23 @@ async def websocket_endpoint(
 
         my_turn = not my_turn
 
-    await websocket.close(status.WS_1000_NORMAL_CLOSURE)
-
 
 @router.get("/")
 async def index(request: Request) -> Any:
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await manager.start()
+    try:
+        yield
+    finally:
+        await manager.stop()
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(
-        on_startup=[manager.start],
-        on_shutdown=[manager.stop],
-    )
+    app = FastAPI(lifespan=lifespan)
 
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

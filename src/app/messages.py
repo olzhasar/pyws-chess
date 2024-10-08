@@ -8,29 +8,15 @@ class BaseMessage(msgspec.Struct, tag=True):
         return msgspec.json.encode(self)
 
 
-class InitResponse(BaseMessage):
-    pass
-
-
-class JoinRequest(BaseMessage):
-    pass
-
-
-class GameStartResponse(BaseMessage):
+class GameStarted(BaseMessage):
     start_time: datetime
     my_id: str
     am_i_white: bool
 
 
-class MoveRequest(BaseMessage):
+class Move(BaseMessage):
     uci: str
 
 
-class MoveResponse(BaseMessage):
-    for_id: str
-    uci: str
-
-
-class GameOverResponse(BaseMessage):
-    # winner_id: str
+class GameAborted(BaseMessage):
     pass

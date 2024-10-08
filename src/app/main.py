@@ -37,6 +37,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 router = APIRouter()
 
 PING_FRAME_BYTES = b"\x89\x00"
+PING_INTERVAL = 1
 
 
 class WSPlayer(AbstractPlayer):
@@ -51,7 +52,7 @@ class WSPlayer(AbstractPlayer):
             return
 
         start_time = datetime.now()
-        msg = messages.GameStartResponse(
+        msg = messages.GameStarted(
             start_time=start_time, my_id=str(id(self.websocket)), am_i_white=white
         )
         logger.debug("Sending game info: %s", msg)
@@ -69,14 +70,14 @@ class WSPlayer(AbstractPlayer):
         except WebSocketDisconnect as exc:
             raise PlayerDisconnected from exc
         binary = json.dumps(msg).encode()
-        move = msgspec.json.decode(binary, type=messages.MoveRequest)
+        move = msgspec.json.decode(binary, type=messages.Move)
         return move.uci
 
     async def send_opponent_move(self, move: str) -> None:
         if not self.is_connected():
             raise PlayerDisconnected
 
-        msg = messages.MoveResponse(uci=move, for_id="opponent")
+        msg = messages.Move(uci=move)
         try:
             await self.websocket.send_bytes(msg.serialize())
         except WebSocketDisconnect as exc:
@@ -86,7 +87,7 @@ class WSPlayer(AbstractPlayer):
         if not self.is_connected():
             raise PlayerDisconnected
 
-        msg = messages.GameOverResponse()
+        msg = messages.GameAborted()
         logger.debug("Sending game aborted: %s", msg.serialize())
         await self.websocket.send_bytes(msg.serialize())
 
@@ -111,13 +112,12 @@ async def websocket_endpoint(
 
     while websocket.client_state != WebSocketState.DISCONNECTED:
         # Websocket disconnects are not propagated when not sending / receiving
-        logger.debug("Sending ping frame to %s", player)
         try:
             await websocket.send_bytes(PING_FRAME_BYTES)
         except Exception as exc:
             logger.debug("Player %s disconnected", player, exc_info=exc)
             break
-        await asyncio.sleep(1)
+        await asyncio.sleep(PING_INTERVAL)
 
 
 @router.get("/")

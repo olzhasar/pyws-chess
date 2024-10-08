@@ -37,6 +37,12 @@
 
     const ws = new WebSocket("ws://" + window.location.host + "/ws");
 
+    const messageHandlers = {
+      "GameStarted": handleGameStarted,
+      "Move": handleIncomingMove,
+      "GameAborted": handleGameAborted
+    }
+
     ws.onopen = function() {
       console.log("Connected to server");
     }
@@ -45,18 +51,15 @@
       const data = JSON.parse(await event.data.text());
       console.debug(`Received message: ${JSON.stringify(data)}`);
 
-      if (data.type === "GameStartResponse") {
-	handleGameStart(data);
-      } else if (data.type === "MoveResponse") {
-	handleIncomingMove(data);
-      } else if (data.type === "GameOverResponse") {
-	handleGameOver(data);
+      const handler = messageHandlers[data.type];
+      if (handler) {
+	handler(data);
       } else {
 	console.error(`Unknown message type: ${data.type}`);
       }
     };
 
-    function handleGameStart(data) {
+    function handleGameStarted(data) {
       startTime = new Date(data.start_time);
       console.debug(`Game started at: ${startTime.toLocaleString()}`);
       myId = data.my_id;
@@ -91,14 +94,14 @@
 	myTurn = true;
     };
 
-    function handleGameOver(data) {
+    function handleGameAborted(data) {
       gameOver = true;
-      gameStatus.innerHTML = "You won by abandonment!";
+      gameStatus.innerHTML = "Game aborted.<br>Opponent disconnected.";
     }
 
     function sendMove(uci) {
       const payload = {
-	type: "MoveRequest",
+	type: "Move",
 	uci: uci
       }
 

@@ -21,13 +21,8 @@ def player_2():
 
 
 @pytest.fixture
-def game_id():
-    return "game_id"
-
-
-@pytest.fixture
-def game(player_1: str, player_2: AbstractPlayer, game_id: AbstractPlayer):
-    return Game.make(player_1, player_2, game_id=game_id)
+def game(player_1: AbstractPlayer, player_2: AbstractPlayer):
+    return Game.make(player_1, player_2)
 
 
 async def test_checkmate():

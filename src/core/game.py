@@ -122,7 +122,7 @@ class GameManager:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._queue: asyncio.Queue[AbstractPlayer] = asyncio.Queue()
         self._games: dict[str, Game] = {}
-        self._run_task = None
+        self._run_task: asyncio.Task[None] | None = None
 
     @property
     def running_loop(self) -> asyncio.AbstractEventLoop:

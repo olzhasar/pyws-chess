@@ -1,22 +1,16 @@
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.main import create_app
+from app.main import app
 
 
 @pytest.fixture
-async def app():
-    return create_app()
-
-
-@pytest.fixture
-async def client(app: FastAPI):
+async def client():
     with TestClient(app) as _client:
         yield _client
 
 
 @pytest.fixture
-async def other_client(app: FastAPI):
+async def other_client():
     with TestClient(app) as _client:
         yield _client

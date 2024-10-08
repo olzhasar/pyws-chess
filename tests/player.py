@@ -1,4 +1,4 @@
-from core.player import AbstractPlayer
+from app.core.player import AbstractPlayer
 
 
 class MockPlayer(AbstractPlayer):

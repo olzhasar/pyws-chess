@@ -19,12 +19,12 @@ from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocketState
 
 from app import messages
-from core.game import GameManager
-from core.player import AbstractPlayer, PlayerDisconnected
+from app.core.game import GameManager
+from app.core.player import AbstractPlayer, PlayerDisconnected
 
-APP_DIR = pathlib.Path(__file__).parent
-TEMPLATES_DIR = APP_DIR.parent / "templates"
-STATIC_DIR = APP_DIR.parent.parent / "static"
+SRC_DIR = pathlib.Path(__file__).parent.parent
+TEMPLATES_DIR = SRC_DIR / "templates"
+STATIC_DIR = SRC_DIR / "static"
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +142,6 @@ def create_app() -> FastAPI:
     app.mount("/img", StaticFiles(directory=STATIC_DIR / "img"))
 
     return app
+
+
+app = create_app()

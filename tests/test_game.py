@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from core.game import Game, GameManager
-from core.player import AbstractPlayer
+from app.core.game import Game, GameManager
+from app.core.player import AbstractPlayer
 
 from .player import MockPlayer
 

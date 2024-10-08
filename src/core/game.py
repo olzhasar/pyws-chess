@@ -64,9 +64,19 @@ class Game:
 
     async def run(self) -> None:
         while not self._board.outcome():
+            if not self._waiting_player.is_connected():
+                logger.debug("Player %s disconnected", self._waiting_player)
+                try:
+                    await self._current_turn.send_game_aborted()
+                finally:
+                    break
+
             logger.debug("Waiting for move from %s", self._current_turn)
             try:
-                move = await self._current_turn.receive_move()
+                async with asyncio.timeout(5):
+                    move = await self._current_turn.receive_move()
+            except TimeoutError:
+                continue
             except PlayerDisconnected:
                 logger.debug("Player %s disconnected", self._current_turn)
                 try:
@@ -79,6 +89,7 @@ class Game:
             except ValueError:
                 logger.error("Invalid move %s from player %s", move, self._current_turn)
                 continue
+
             logger.debug("Sending move %s to player %s", move, self._waiting_player)
             try:
                 await self._waiting_player.send_opponent_move(move)
@@ -146,13 +157,17 @@ class GameManager:
                 logger.info("Waiting for players")
                 game = await self.match()
                 self.running_loop.create_task(game.play())
-
+            except PlayerDisconnected:
+                logger.debug("Player disconnected")
             except asyncio.CancelledError:
                 break
 
     async def match(self) -> Game:
-        # TODO: handle first player disconnect
         player_1 = await self._queue.get()
         player_2 = await self._queue.get()
+
+        if not player_1.is_connected():
+            await self._queue.put(player_2)
+            raise PlayerDisconnected
 
         return Game.make(player_1, player_2)

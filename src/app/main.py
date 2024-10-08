@@ -42,7 +42,6 @@ PING_FRAME_BYTES = b"\x89\x00"
 class WSPlayer(AbstractPlayer):
     def __init__(self, websocket: WebSocket) -> None:
         self.websocket = websocket
-        self._connected = True
 
     def __str__(self) -> str:
         return f"Player {id(self.websocket)}"
@@ -56,7 +55,10 @@ class WSPlayer(AbstractPlayer):
             start_time=start_time, my_id=str(id(self.websocket)), am_i_white=white
         )
         logger.debug("Sending game info: %s", msg)
-        await self.websocket.send_bytes(msg.serialize())
+        try:
+            await self.websocket.send_bytes(msg.serialize())
+        except WebSocketDisconnect as exc:
+            raise PlayerDisconnected from exc
 
     async def receive_move(self) -> str:
         if not self.is_connected():
@@ -65,7 +67,6 @@ class WSPlayer(AbstractPlayer):
         try:
             msg = await self.websocket.receive_json()
         except WebSocketDisconnect as exc:
-            self._connected = False
             raise PlayerDisconnected from exc
         binary = json.dumps(msg).encode()
         move = msgspec.json.decode(binary, type=messages.MoveRequest)
@@ -79,7 +80,6 @@ class WSPlayer(AbstractPlayer):
         try:
             await self.websocket.send_bytes(msg.serialize())
         except WebSocketDisconnect as exc:
-            self._connected = False
             raise PlayerDisconnected from exc
 
     async def send_game_aborted(self) -> None:
@@ -91,7 +91,10 @@ class WSPlayer(AbstractPlayer):
         await self.websocket.send_bytes(msg.serialize())
 
     def is_connected(self) -> bool:
-        return self._connected
+        return (
+            self.websocket.client_state == WebSocketState.CONNECTED
+            and self.websocket.application_state == WebSocketState.CONNECTED
+        )
 
 
 @router.websocket("/ws")

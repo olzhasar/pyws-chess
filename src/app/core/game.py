@@ -63,7 +63,7 @@ class Game:
             return self.white
 
     async def run(self) -> None:
-        while not self._board.outcome():
+        while not self._board.is_game_over():
             if not self._waiting_player.is_connected():
                 logger.debug("Player %s disconnected", self._waiting_player)
                 try:

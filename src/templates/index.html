@@ -26,7 +26,6 @@
       onDragStart: onDragStart
     }
 
-    let startTime;
     let board;
     const gameStatus = window.document.getElementById("gameStatus");
     const game = new Chess();
@@ -60,8 +59,9 @@
     };
 
     function handleGameStarted(data) {
-      startTime = new Date(data.start_time);
+      const startTime = new Date(data.start_time);
       console.debug(`Game started at: ${startTime.toLocaleString()}`);
+      gameStatus.innerHTML = "";
       myId = data.my_id;
       amIWhite = data.am_i_white;
 

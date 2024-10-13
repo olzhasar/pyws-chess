@@ -68,7 +68,14 @@
     }
 
     ws.onmessage = async function(event) {
-      const data = JSON.parse(await event.data.text());
+      let data;
+      try {
+	data = JSON.parse(await event.data.text());
+      } catch (e) {
+	console.debug("Received ping");
+	return;
+      }
+
       console.debug(`Received message: ${JSON.stringify(data)}`);
 
       const handler = messageHandlers[data.type];

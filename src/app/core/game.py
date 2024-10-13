@@ -6,8 +6,12 @@ from datetime import datetime
 from typing import Self
 
 from chess import Board
+from prometheus_client import Counter, Gauge
 
 from .player import AbstractPlayer, PlayerDisconnected
+
+games_online = Gauge("games_online", "Number of games currently being played")
+games_total = Counter("games_total", "Total number of games played")
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +50,8 @@ class Game:
         return cls(game_id, player_1, player_2, loop=loop)
 
     async def play(self) -> None:
+        games_total.inc()
+
         self.start_time.set_result(datetime.now())
         logger.info("Game %s started", self.game_id)
 
@@ -54,7 +60,8 @@ class Game:
             self.black.send_game_info(False, self.white.name),
         )
 
-        await self.run()
+        with games_online.track_inprogress():
+            await self.run()
 
     @property
     def _waiting_player(self) -> AbstractPlayer:

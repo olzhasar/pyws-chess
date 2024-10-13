@@ -5,12 +5,12 @@ from app.main import app
 
 
 @pytest.fixture
-async def client():
+def client():
     with TestClient(app) as _client:
         yield _client
 
 
 @pytest.fixture
-async def other_client():
+def other_client():
     with TestClient(app) as _client:
         yield _client

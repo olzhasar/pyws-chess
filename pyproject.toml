@@ -9,6 +9,7 @@ dependencies = [
     "fastapi[standard]>=0.115.0",
     "jinja2>=3.1.4",
     "msgspec>=0.18.6",
+    "prometheus-fastapi-instrumentator>=7.0.0",
     "python-chess>=1.2.0",
     "uvicorn>=0.30.6",
     "websockets>=13.0.1",

@@ -18,6 +18,8 @@ from fastapi import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocketState
+from prometheus_client import Gauge
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app import messages
 from app.core.game import GameManager
@@ -32,10 +34,14 @@ logger = logging.getLogger(__name__)
 
 manager = GameManager()
 
+instrumentator = Instrumentator()
+
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 router = APIRouter()
+
+players_online = Gauge("players_online", "Number of players currently connected")
 
 PING_FRAME_BYTES = b"\x89\x00"
 PING_INTERVAL = 1
@@ -110,20 +116,21 @@ async def websocket_endpoint(
 ):
     await websocket.accept()
 
-    # TODO: store sessions globally and recreate client on reconnect
-    player = WSPlayer(name, websocket)
-    logger.info("Player %s connected", player)
+    with players_online.track_inprogress():
+        # TODO: store sessions globally and recreate client on reconnect
+        player = WSPlayer(name, websocket)
+        logger.info("Player %s connected", player)
 
-    await manager.join(player)
+        await manager.join(player)
 
-    while websocket.client_state != WebSocketState.DISCONNECTED:
-        # Websocket disconnects are not propagated when not sending / receiving
-        try:
-            await websocket.send_bytes(PING_FRAME_BYTES)
-        except Exception as exc:
-            logger.debug("Player %s disconnected", player, exc_info=exc)
-            break
-        await asyncio.sleep(PING_INTERVAL)
+        while websocket.client_state != WebSocketState.DISCONNECTED:
+            # Websocket disconnects are not propagated when not sending / receiving
+            try:
+                await websocket.send_bytes(PING_FRAME_BYTES)
+            except Exception as exc:
+                logger.debug("Player %s disconnected", player, exc_info=exc)
+                break
+            await asyncio.sleep(PING_INTERVAL)
 
 
 @router.get("/")
@@ -137,7 +144,10 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        await manager.stop()
+        try:
+            await manager.stop()
+        except Exception as exc:
+            logger.error("Error stopping game manager", exc_info=exc)
 
 
 def create_app() -> FastAPI:
@@ -146,6 +156,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.mount("/img", StaticFiles(directory=STATIC_DIR / "img"))
+    instrumentator.instrument(app).expose(app)
 
     return app
 

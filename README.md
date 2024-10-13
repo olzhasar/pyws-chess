@@ -17,6 +17,7 @@ Live Demo:
 - [python-chess](https://python-chess.readthedocs.io/en/latest/) for server-side chess logic
 - [chessboard.js](https://chessboardjs.com/) for client rendering
 - [chess.js](https://github.com/jhlywa/chess.js) for client-side chess logic
+- [Prometheus](https://prometheus.io/) and [prometheus-fastapi-instrumentator](https://github.com/trallnag/prometheus-fastapi-instrumentator)  for metrics
 
 ## Features
 - Real-time chess game

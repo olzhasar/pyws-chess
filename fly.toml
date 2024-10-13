@@ -24,3 +24,7 @@ primary_region = 'waw'
   memory = '256mb'
   cpu_kind = 'shared'
   cpus = 1
+
+[metrics]
+port = 8000
+path = "/metrics"

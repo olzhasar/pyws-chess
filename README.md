@@ -23,8 +23,7 @@ Live Demo:
 - Client and server-side move validation
 - Automatic matchmaking
 
-### Current Limitations
-- En passant does not work
+### Limitations
 - Reconnection is not supported
 
 ## Running locally

@@ -118,7 +118,7 @@
 	  console.error("Invalid opponent move");
 	  return;
 	}
-	board.move(`${source}-${target}`);
+	board.position(game.fen());
 	checkGameOver();
 
 	myTurn = true;
@@ -173,18 +173,6 @@
       gameStatusElement.innerHTML = result;
     }
 
-    function handleCastles(source, target) {
-      if (source === 'e1' && target === 'g1') {
-	board.move('h1-f1');
-      } else if (source === 'e1' && target === 'c1') {
-	board.move('a1-d1');
-      } else if (source === 'e8' && target === 'g8') {
-	board.move('h8-f8');
-      } else if (source === 'e8' && target === 'c8') {
-	board.move('a8-d8');
-      }
-    }
-
     function onDrop (source, target) {
       if (!myTurn) return 'snapback'
 
@@ -200,8 +188,7 @@
 	return 'snapback'
       }
 
-      handleCastles(source, target);
-
+      board.position(game.fen());
       checkGameOver();
 
       const uci = `${source}${target}`

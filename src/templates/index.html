@@ -55,7 +55,8 @@
     let gameOver = false;
     let opponentName = "";
 
-    const ws = new WebSocket("ws://" + window.location.host + "/ws?name=" + myName);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws?name=${myName}`);
 
     const messageHandlers = {
       "GameStarted": handleGameStarted,

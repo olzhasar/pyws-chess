@@ -10,8 +10,8 @@ class BaseMessage(msgspec.Struct, tag=True):
 
 class GameStarted(BaseMessage):
     start_time: datetime
-    my_id: str
     am_i_white: bool
+    opponent_name: str
 
 
 class Move(BaseMessage):

@@ -50,7 +50,8 @@ class Game:
         logger.info("Game %s started", self.game_id)
 
         await asyncio.gather(
-            self.white.send_game_info(True), self.black.send_game_info(False)
+            self.white.send_game_info(True, self.black.name),
+            self.black.send_game_info(False, self.white.name),
         )
 
         await self.run()

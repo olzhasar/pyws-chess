@@ -8,12 +8,14 @@ class MockPlayer(AbstractPlayer):
         self.moves = list(moves) if moves else []
         self.sent_opponent_moves: list[str] = []
         self.game_aborted = False
+        self.opponent_name: str | None = None
 
     def __str__(self) -> str:
         return self.name
 
-    async def send_game_info(self, white: bool) -> None:
+    async def send_game_info(self, white: bool, opponent_name: str) -> None:
         self.is_white = white
+        self.opponent_name = opponent_name
 
     async def receive_move(self) -> str:
         return self.moves.pop(0)

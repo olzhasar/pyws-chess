@@ -10,6 +10,7 @@ import msgspec
 from fastapi import (
     APIRouter,
     FastAPI,
+    Query,
     Request,
     WebSocket,
     WebSocketDisconnect,
@@ -41,19 +42,22 @@ PING_INTERVAL = 1
 
 
 class WSPlayer(AbstractPlayer):
-    def __init__(self, websocket: WebSocket) -> None:
+    def __init__(self, name: str, websocket: WebSocket) -> None:
+        self.name = name
         self.websocket = websocket
 
     def __str__(self) -> str:
-        return f"Player {id(self.websocket)}"
+        return self.name
 
-    async def send_game_info(self, white: bool) -> None:
+    async def send_game_info(self, white: bool, opponent_name: str) -> None:
         if not self.is_connected():
             return
 
         start_time = datetime.now()
         msg = messages.GameStarted(
-            start_time=start_time, my_id=str(id(self.websocket)), am_i_white=white
+            start_time=start_time,
+            am_i_white=white,
+            opponent_name=opponent_name,
         )
         logger.debug("Sending game info: %s", msg)
         try:
@@ -102,11 +106,13 @@ class WSPlayer(AbstractPlayer):
 async def websocket_endpoint(
     *,
     websocket: WebSocket,
+    name: str = Query(),
 ):
     await websocket.accept()
 
     # TODO: store sessions globally and recreate client on reconnect
-    player = WSPlayer(websocket)
+    player = WSPlayer(name, websocket)
+    logger.info("Player %s connected", player)
 
     await manager.join(player)
 

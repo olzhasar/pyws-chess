@@ -15,18 +15,25 @@
     #gameStatus {
       color: white;
     }
-    body
+    .playerName {
+      color: white;
+    }
+
     </style>
 
     <div class="container">
       <h1 id="gameStatus">Waiting for opponent...</h1>
+      <h1 class="playerName" id="opponentName"></h1>
       <div id="myBoard" style="width: 500px"></div>
+      <h1 class="playerName" id="myName"></h1>
     </div>
     <script src="/static/js/jquery-3.5.1.min.js"></script>
 
     <script src="/static/js/chessboard-1.0.0.min.js"></script>
     <script src="/static/js/chess.js"></script>
     <script>
+    let myName = prompt("Enter your name", "Anonymous");
+
     let config = {
       draggable: true,
       dropOffBoard: 'snapback', // this is the default
@@ -36,15 +43,19 @@
       onDragStart: onDragStart
     }
 
-    let board;
-    const gameStatus = window.document.getElementById("gameStatus");
+    const gameStatusElement = window.document.getElementById("gameStatus");
+    const opponentNameElement = window.document.getElementById("opponentName");
+    const myNameElement = window.document.getElementById("myName");
+
     const game = new Chess();
+
+    let board;
     let amIWhite = false;
     let myTurn = true;
     let gameOver = false;
-    let myId;
+    let opponentName = "";
 
-    const ws = new WebSocket("ws://" + window.location.host + "/ws");
+    const ws = new WebSocket("ws://" + window.location.host + "/ws?name=" + myName);
 
     const messageHandlers = {
       "GameStarted": handleGameStarted,
@@ -69,10 +80,11 @@
     };
 
     function handleGameStarted(data) {
-      const startTime = new Date(data.start_time);
-      console.debug(`Game started at: ${startTime.toLocaleString()}`);
-      gameStatus.innerHTML = "";
-      myId = data.my_id;
+      opponentName = data.opponent_name;
+      console.log(`Game started against ${opponentName}`);
+      gameStatusElement.innerHTML = "";
+      opponentNameElement.innerHTML = opponentName;
+      myNameElement.innerHTML = myName;
       amIWhite = data.am_i_white;
 
       if (!amIWhite) {
@@ -106,7 +118,7 @@
 
     function handleGameAborted(data) {
       gameOver = true;
-      gameStatus.innerHTML = "Game aborted.<br>Opponent disconnected.";
+      gameStatusElement.innerHTML = "Game aborted.<br>Opponent disconnected.";
     }
 
     function sendMove(uci) {
@@ -150,7 +162,7 @@
 	result = "Game ended in a draw!";
       }
 
-      gameStatus.innerHTML = result;
+      gameStatusElement.innerHTML = result;
     }
 
     function onDrop (source, target) {

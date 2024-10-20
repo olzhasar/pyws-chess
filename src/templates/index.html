@@ -5,6 +5,7 @@
     <title></title>
     <link rel="stylesheet" href="/static/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="meta" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
   </head>
   <body>
     <style>
@@ -16,6 +17,7 @@
       color: white;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
     .container {
       flex: 1 0 auto;
@@ -33,7 +35,6 @@
     }
     #myBoard {
       width: 500px;
-      max-width: 100%;
     }
     .footer {
       flex-shrink: 0;
@@ -44,12 +45,21 @@
       color: #fff;
       text-decoration: none;
     }
+
+    @media only screen and (min-resolution: 2dppx) {
+      #myBoard {
+	width: 95vw;
+      }
+      .playerName {
+	font-size: 2.5em;
+      }
+    }
     </style>
 
     <div class="container">
       <h1 id="gameStatus">Waiting for opponent...</h1>
       <h1 class="playerName" id="opponentName"></h1>
-      <div id="myBoard" style="width: 500px"></div>
+      <div id="myBoard"></div>
       <h1 class="playerName" id="myName"></h1>
     </div>
     <footer class="footer">
@@ -70,7 +80,8 @@
       orientation: 'white',
       position: 'start',
       onDrop: onDrop,
-      onDragStart: onDragStart
+      onDragStart: onDragStart,
+      responsive: true
     }
 
     const gameStatusElement = window.document.getElementById("gameStatus");
